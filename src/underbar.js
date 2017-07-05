@@ -211,7 +211,10 @@ _.reduce = function (collection, iterator, accumulator) {
   // Determine whether all of the elements match a truth test.
   _.every = function(collection, iterator) {
     // TIP: Try re-using reduce() here.
-    _.reduce(collection, function(trueOrFalse, value){
+    iterator = iterator || _.identity; 
+
+    //the !! is making our "truthy" values into "pure boolean" values
+    return !!_.reduce(collection, function(trueOrFalse, value){
       return trueOrFalse && iterator(value);
     }, true);
   };
@@ -220,6 +223,12 @@ _.reduce = function (collection, iterator, accumulator) {
   // provided, provide a default one
   _.some = function(collection, iterator) {
     // TIP: There's a very clever way to re-use every() here.
+    // TIP: Try re-using reduce() here.
+    iterator = iterator || _.identity; 
+
+    return !!_.reduce(collection, function(trueOrFalse, value){
+      return trueOrFalse || iterator(value);
+    }, false);
   };
 
 
@@ -242,11 +251,27 @@ _.reduce = function (collection, iterator, accumulator) {
   //     bla: "even more stuff"
   //   }); // obj1 now contains key1, key2, key3 and bla
   _.extend = function(obj) {
+    _.each(arguments, function(otherObj){
+      _.each(otherObj, function(value, key){
+        obj[key] = value;
+      });
+    });
+    return obj;
   };
 
   // Like extend, but doesn't ever overwrite a key that already
   // exists in obj
   _.defaults = function(obj) {
+    _.each(arguments, function(otherObj){
+        _.each(otherObj, function(value, key){
+          //this says...
+          //if the first part of the expression is true
+          //execute teh second part of the expression (after the and)
+          //called the poor man's if
+        obj[key] === undefined && (obj[key] = value);
+      });
+    });
+    return obj;
   };
 
 
@@ -290,6 +315,44 @@ _.reduce = function (collection, iterator, accumulator) {
   // already computed the result for the given argument and return that value
   // instead if possible.
   _.memoize = function(func) {
+   //From the video
+   /*
+    var results = {};
+
+    return function(arg) {
+      var arg = JSON.stringify(arguments);
+
+      if( !results[arg] ) {
+        results[arg] = func.call(this, arg);
+      }
+
+      return results[arg];
+
+    };
+    */
+    var invocationList = [];
+      return function () {
+
+        OUTTER:
+        for (var i = 0; i < invocationList.length; i++) {
+          var invocation = invocationList[i];
+          for(var x = 0; x < Math.max(invocation.args.length, arguments.length); x++){
+            
+            if (typeof invocation.args[x] === 'object' && typeof arguments[x] == 'object'){
+              if (_.every(Object.keys(invocation.args[x]), function (k) {
+                return invocation.args[x][k] == arguments[x][k];
+              })) break OUTTER;
+            } else if(invocation.args[x] !== arguments[x]){
+              break OUTTER;
+            }
+          }
+          return invocation.ret;
+        }
+
+        var returnValue = func(...arguments);
+        invocationList.push({args: arguments, ret: returnValue});
+        return returnValue;
+      }
   };
 
   // Delays a function for the given number of milliseconds, and then calls
@@ -299,6 +362,10 @@ _.reduce = function (collection, iterator, accumulator) {
   // parameter. For example _.delay(someFunction, 500, 'a', 'b') will
   // call someFunction('a', 'b') after 500ms
   _.delay = function(func, wait) {
+    var args = Array.prototype.slice.call(arguments, 2);
+      setTimeout( function () {
+        func (...args); 
+      }, wait);
   };
 
 
@@ -313,6 +380,23 @@ _.reduce = function (collection, iterator, accumulator) {
   // input array. For a tip on how to make a copy of an array, see:
   // http://mdn.io/Array.prototype.slice
   _.shuffle = function(array) {
+    //Fisher-Yates Shuffle
+    var freshArray = array.slice(0,array.length);
+    var currentIndex = freshArray.length, temporaryValue, randomIndex;
+
+    //do until we have no more to shuffle
+    while (0 !== currentIndex){
+      //select remaining element
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex -= 1;
+
+      //swap it with current element
+      temporaryValue = freshArray[currentIndex];
+      freshArray[currentIndex] = freshArray[randomIndex];
+      freshArray[randomIndex] = temporaryValue;
+    }
+
+    return freshArray;
   };
 
 
